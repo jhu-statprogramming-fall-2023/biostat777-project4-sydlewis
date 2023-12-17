@@ -8,12 +8,15 @@ runtime: shiny
 ---
 
 ```{r setup, include=FALSE}
+library(tidyverse)
+library(shiny)
 library(flexdashboard)
+library(DT)
 ```
 
 # About
 
-## Column {data-width=500}
+## Column {data-width=400}
 
 ### Research Question: **How has the volume and distribution of votes changed in U.S. House of Representative elections over time?**
 
@@ -23,11 +26,11 @@ I am interested in how the amount of votes have changed over time and how these 
 
 In answering these questions I using data from the [MIT Election Data and Science Lab](https://electionlab.mit.edu). I downloaded the dataset via the Tidy Tuesday GitHub repo [here](https://github.com/rfordatascience/tidytuesday/blob/master/data/2023/2023-11-07/readme.md). The data dictionary can also be found [here](https://github.com/rfordatascience/tidytuesday/blob/master/data/2023/2023-11-07/readme.md). 
 
-## Column {data-width=500}
+## Column {data-width=600}
 
 ###
 
-![](ushouse_logo.png)
+![](ushouse_logo4.png)
 
 # The Data
 
@@ -38,9 +41,6 @@ Each row of the data set represents a candidate in a United States House of Repr
 ### Dataset {data-height=800}
 
 ```{r}
-library(tidyverse)
-library(DT)
-
 # Function created to avoid unnecessarily saving the data when it is already saved locally
 
 download_and_save <- function(file_name, url) {
@@ -116,11 +116,6 @@ ushouse_v1 %>%
 # Interactive Content 1
 
 ```{r}
-library(shiny)
-library(ggplot2)
-library(dplyr)
-library(flexdashboard)
-
 # Assuming 'ushouse_v1' is your dataset
 ushouse_v1$state <- as.character(ushouse_v1$state)
 
@@ -134,36 +129,33 @@ output$myPlot <- renderPlot({
   # Filter data based on selected state
   filtered_data <- ushouse_v1 %>%
     filter(if(input$stateInput != "All States") state == input$stateInput else TRUE,
-           party_dro %in% c("Democrat", "Republican"),
            stage == "GEN") %>%
-    group_by(party_dro, year, year_type) %>%
-    summarise(mean_votes = mean(candidatevotes), .groups = 'drop') %>%
+    group_by(year, year_type) %>%
+    summarise(total_votes = sum(candidatevotes), .groups = 'drop') %>%
     ungroup()
 
   # Create the plot
-  ggplot(filtered_data, aes(x = year, y = mean_votes, color = party_dro, group = interaction(party_dro, year_type), shape = year_type)) +
-    geom_point(size = 2.5) +
-    geom_line() +
-    scale_color_manual(values = c("Republican" = "red", "Democrat" = "blue", "Other" = "gray")) +
+  ggplot(filtered_data, aes(x = year, y = total_votes, fill = year_type)) +
+    geom_col() +
     labs(
       title = "Total Votes per Party Across Election Years in House Races",
       subtitle = "Visualization only includes votes for Republicans or Democrats",
       x = "Year",
       y = "Number of Votes",
-      color = "Party",
-      shape = "Election Type",
+      fill = "Election Type",
       caption = "Created with Tidy Tuesday Data"
     ) +
     theme_minimal() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
-})
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_fill_manual(values = c("Presidential Year" = "darkblue", "Midterm Year" = "lightblue"))
+}) 
+
 ```
 
 ```{r}
 # Plot Output Element
 plotOutput("myPlot")
 ```
-
 
 # Vote Distribution Across Party
 
