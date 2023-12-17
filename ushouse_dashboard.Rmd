@@ -67,7 +67,7 @@ datatable(ushouse_raw)
 ```
 
 
-# Static Content 1
+# Vote Volume Across Years
 
 ```{r}
 factors <- c("state", "state_po", "office", "district", "stage", "party", "year")
@@ -108,14 +108,94 @@ ushouse_v1 %>%
     shape = "Election Type",
     caption = "Created with Tidy Tuesday Data"
   ) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
 
 ```
 
 # Interactive Content 1
 
-# Static Content 2
+```{r}
+library(shiny)
+library(ggplot2)
+library(dplyr)
+library(flexdashboard)
 
+# Assuming 'ushouse_v1' is your dataset
+ushouse_v1$state <- as.character(ushouse_v1$state)
+
+# UI Element for State Selection
+selectInput("stateInput", "Select a State:", 
+            choices = c("All States", unique(ushouse_v1$state)), 
+            selected = "All States")
+
+# Server Logic
+output$myPlot <- renderPlot({
+  # Filter data based on selected state
+  filtered_data <- ushouse_v1 %>%
+    filter(if(input$stateInput != "All States") state == input$stateInput else TRUE,
+           party_dro %in% c("Democrat", "Republican"),
+           stage == "GEN") %>%
+    group_by(party_dro, year, year_type) %>%
+    summarise(mean_votes = mean(candidatevotes), .groups = 'drop') %>%
+    ungroup()
+
+  # Create the plot
+  ggplot(filtered_data, aes(x = year, y = mean_votes, color = party_dro, group = interaction(party_dro, year_type), shape = year_type)) +
+    geom_point(size = 2.5) +
+    geom_line() +
+    scale_color_manual(values = c("Republican" = "red", "Democrat" = "blue", "Other" = "gray")) +
+    labs(
+      title = "Total Votes per Party Across Election Years in House Races",
+      subtitle = "Visualization only includes votes for Republicans or Democrats",
+      x = "Year",
+      y = "Number of Votes",
+      color = "Party",
+      shape = "Election Type",
+      caption = "Created with Tidy Tuesday Data"
+    ) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+})
+```
+
+```{r}
+# Plot Output Element
+plotOutput("myPlot")
+```
+
+
+# Vote Distribution Across Party
+
+## {.tabset}
+
+### Chart 1
+
+```{r}
+ushouse_v1 %>%
+  filter(stage == "GEN", 
+         outcome == "win", 
+         party %in% c("REPUBLICAN", "DEMOCRAT")) %>% 
+  group_by(year, party) %>%
+  summarise(totalwins = n()) %>%
+  spread(party, totalwins, fill = 0) %>%
+  mutate(difference = DEMOCRAT - REPUBLICAN) %>%
+  ggplot(aes(x = year, y = difference, group = 1)) +
+  geom_point(aes(color = ifelse(difference < 0, "Majority Republican", "Majority Democrat"))) +
+  geom_line(aes(color = ifelse(difference < 0, "Majority Republican", "Majority Democrat")), linewidth = 0.5) +
+  labs(
+    title = "Difference in Wins between Democrats and Republicans Across Election Years in House Races",
+    subtitle = "Values above 0 indicate more wins for Democrats than Republicans",
+    x = "Year",
+    y = "Difference in Election Wins",
+    color = "Party Majority in House",
+    caption = "Created with Tidy Tuesday Data"
+  ) +
+  scale_color_manual(values = c("Majority Republican" = "red", "Majority Democrat" = "blue")) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### Chart 2
 ```{r}
 ushouse_v1 %>%
   filter(stage == "GEN", 
@@ -147,6 +227,56 @@ ushouse_v1 %>%
 ```
 
 # Interactive Content 2
+
+```{r}
+ushouse_v1$state <- as.character(ushouse_v1$state)
+
+# UI Element for State Selection
+selectInput("stateInput", "Select a State:", 
+            choices = c("All States", unique(ushouse_v1$state)), 
+            selected = "All States")
+
+# Server Logic for the Plot
+output$myInteractivePlot <- renderPlot({
+  # Filter data based on selected state
+  filtered_data <- ushouse_v1 %>%
+    filter(if(input$stateInput != "All States") state == input$stateInput else TRUE,
+           stage == "GEN", 
+           outcome == "win",
+           party_dro %in% c("Democrat", "Republican")) %>%
+    group_by(year, party_dro) %>%
+    summarise(totalwins = n(), .groups = 'drop') %>%
+    group_by(year) %>%
+    mutate(percentage = totalwins / sum(totalwins) * 100)
+
+  # Debug: print the first few lines of the filtered data to the console
+  print(head(filtered_data))
+
+  # Create the plot
+  ggplot(filtered_data, aes(x = ifelse(party_dro == "Democrat", -percentage, percentage), y = factor(year, levels = rev(unique(year))), fill = party_dro)) +
+    geom_col(position = "stack") +
+    labs(
+      title = "Percentage of Wins per Party Across Election Years in House Races",
+      subtitle = "A 'win' is defined as receiving the most votes among other candidates in that general election",
+      x = "Percentage of Election Wins (%)",
+      y = "Year",
+      fill = "Party:",
+      caption = "Created with Tidy Tuesday Data"
+    ) +
+    scale_fill_manual(values = c("Democrat" = "blue", "Republican" = "red")) +
+    scale_x_continuous(limits = c(-110, 100), labels = function(x) abs(x)) +
+    theme(
+      legend.position = "top", 
+      legend.justification = "center"  
+    )
+})
+
+```
+
+```{r}
+# Plot Output Element
+plotOutput("myInteractivePlot")
+```
 
 # Analysis
 
