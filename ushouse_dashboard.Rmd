@@ -1,0 +1,281 @@
+---
+title: "U.S. House Elections"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+```
+
+# About
+
+## Column {data-width=500}
+
+### Research Question: **How has the volume and distribution of votes changed in U.S. House of Representative elections over time?**
+
+I am interested in how the amount of votes have changed over time and how these numbers differ across midterm and presidential election years. I am also interested in how the proportion of elections won has changed over time across party. 
+
+### Data Source
+
+In answering these questions I using data from the [MIT Election Data and Science Lab](https://electionlab.mit.edu). I downloaded the dataset via the Tidy Tuesday GitHub repo [here](https://github.com/rfordatascience/tidytuesday/blob/master/data/2023/2023-11-07/readme.md). The data dictionary can also be found [here](https://github.com/rfordatascience/tidytuesday/blob/master/data/2023/2023-11-07/readme.md). 
+
+## Column {data-width=500}
+
+###
+
+![](ushouse_logo.png)
+
+# The Data
+
+### Description {data-height=200}
+
+Each row of the data set represents a candidate in a United States House of Representatives Election. The row contains information about the election, including the year, state, and type (primary or general), about the candidate, including their name and party, and about the election results, including the number of votes cast for the candidate and the total number of votes in the election. 
+
+### Dataset {data-height=800}
+
+```{r}
+library(tidyverse)
+library(DT)
+
+# Function created to avoid unnecessarily saving the data when it is already saved locally
+
+download_and_save <- function(file_name, url) {
+  data_folder <- "../data"
+  file_path <- file.path("../data", file_name)
+  # See if the file already exists
+  if (!file.exists("../data")) {
+    dir.create("../data", recursive = TRUE)
+  }
+  if (!file.exists(file_path)) {
+    # Download the data if it does not exist
+    data <- readr::read_csv(url)
+    # Save the data to the path with the desired name
+    write.csv(data, file = file_path, row.names = FALSE)
+  }
+}
+
+# Using function to download data
+download_and_save("house.csv", 'https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-11-07/house.csv')
+
+ushouse_raw <- read_csv("../data/house.csv")
+
+datatable(ushouse_raw)
+```
+
+
+# Static Content 1
+
+```{r}
+factors <- c("state", "state_po", "office", "district", "stage", "party", "year")
+
+ushouse_v1 <- ushouse_raw %>%
+  mutate(year_type = case_when(
+    year %in% c("1976", "1980", "1984", "1988", "1992", "1996", "2000", "2004", "2008", "2012", "2016", "2020") ~ "Presidential Year",
+    year %in% c("1978", "1982", "1986", "1990", "1994", "1998", "2002", "2006", "2010", "2014", "2018", "2022") ~ "Midterm Year",
+    TRUE ~ NA
+  ),
+  party_dro = case_when(
+    party == "DEMOCRAT" ~ "Democrat",
+    party == "REPUBLICAN" ~ "Republican",
+    TRUE ~ "Other"
+  ),
+  across(all_of(factors), as.factor)) %>%
+  group_by(year, state, district) %>%
+  mutate(outcome = factor(ifelse(candidatevotes == max(candidatevotes), "win", "lose"),
+                          levels = c("win", "lose"))) %>%
+  ungroup()
+
+ushouse_v1 %>%
+  filter(party_dro %in% c("Democrat", "Republican"),
+         stage == "GEN") %>%
+  group_by(party_dro, year, year_type) %>%
+  summarise(mean_votes = mean(candidatevotes)) %>%
+  ungroup() %>%
+  ggplot(aes(x = year, y = mean_votes, color = party_dro, group = interaction(party_dro, year_type), shape = year_type)) +
+  geom_point(size = 2.5) +
+  geom_line() +
+  scale_color_manual(values = c("Republican" = "red", "Democrat" = "blue", "Other" = "gray")) +
+  labs(
+    title = "Total Votes per Party Across Election Years in House Races",
+    subtitle = "Visualization only includes votes for Republicans or Democrats",
+    x = "Year",
+    y = "Number of Votes",
+    color = "Party",
+    shape = "Election Type",
+    caption = "Created with Tidy Tuesday Data"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+# Interactive Content 1
+
+# Static Content 2
+
+```{r}
+ushouse_v1 %>%
+  filter(stage == "GEN", 
+         outcome == "win",
+         party_dro %in% c("Democrat", "Republican")) %>% 
+  group_by(year, party_dro) %>%
+  summarise(totalwins = n()) %>%
+  group_by(year) %>%
+  mutate(percentage = totalwins / sum(totalwins) * 100) %>%
+  ggplot(aes(x = ifelse(party_dro == "Democrat", -percentage, percentage), y = factor(year, levels = rev(unique(year))), fill = party_dro)) +
+  geom_col(position = "stack") +
+  geom_text(aes(label = sprintf("%.1f%%", abs(percentage)), hjust = ifelse(party_dro == "Democrat", 3, -1.5)), 
+            position = position_stack(vjust = 0.5),
+            color = "white", size = 2.5) +
+  labs(
+    title = "Percentage of Wins per Party Across Election Years in House Races",
+    subtitle = "A 'win' is defined as receiving the most votes among other candidates in that general election",
+    x = "Percentage of Election Wins (%)",
+    y = "Year",
+    fill = "Party:",
+    caption = "Created with Tidy Tuesday Data"
+  ) +
+  scale_fill_manual(values = c("Democrat" = "blue", "Republican" = "red")) +
+  scale_x_continuous(limits = c(-70, 70), labels = function(x) abs(x)) +
+  theme(
+    legend.position = "top", 
+    legend.justification = "center"  
+  )
+```
+
+# Interactive Content 2
+
+# Analysis
+
+## Loading Data
+```{r}
+library(tidyverse)
+library(project2package)
+```
+
+## Data Wrangling
+```{r}
+# Import dataset
+ushouse_raw <- read_csv("../data/house.csv")
+
+factors <- c("state", "state_po", "office", "district", "stage", "party", "year")
+
+ushouse_v1 <- ushouse_raw %>%
+  mutate(year_type = case_when(
+    year %in% c("1976", "1980", "1984", "1988", "1992", "1996", "2000", "2004", "2008", "2012", "2016", "2020") ~ "Presidential Year",
+    year %in% c("1978", "1982", "1986", "1990", "1994", "1998", "2002", "2006", "2010", "2014", "2018", "2022") ~ "Midterm Year",
+    TRUE ~ NA
+  ),
+  party_dro = case_when(
+    party == "DEMOCRAT" ~ "Democrat",
+    party == "REPUBLICAN" ~ "Republican",
+    TRUE ~ "Other"
+  ),
+  across(all_of(factors), as.factor)) %>%
+  group_by(year, state, district) %>%
+  mutate(outcome = factor(ifelse(candidatevotes == max(candidatevotes), "win", "lose"),
+                          levels = c("win", "lose"))) %>%
+  ungroup()
+```
+
+## Number of Votes Per Party Across Election Years 
+
+Over this entire time period, there are more votes in Presidential Election years than in Midterm Election years. The difference in the amount of votes received by Democrats and Republicans is dependent on the election year. 
+
+```{r}
+
+ushouse_v1 %>%
+  filter(party_dro %in% c("Democrat", "Republican"),
+         stage == "GEN") %>%
+  group_by(party_dro, year, year_type) %>%
+  summarise(mean_votes = mean(candidatevotes)) %>%
+  ungroup() %>%
+  ggplot(aes(x = year, y = mean_votes, color = party_dro, group = interaction(party_dro, year_type), shape = year_type)) +
+  geom_point(size = 2.5) +
+  geom_line() +
+  scale_color_manual(values = c("Republican" = "red", "Democrat" = "blue", "Other" = "gray")) +
+  labs(
+    title = "Total Votes per Party Across Election Years in House Races",
+    subtitle = "Visualization only includes votes for Republicans or Democrats",
+    x = "Year",
+    y = "Number of Votes",
+    color = "Party",
+    shape = "Election Type",
+    caption = "Created with Tidy Tuesday Data"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Percentage of Election Wins for Republicans vs. Democrats
+
+The percentage of election wins for Republicans and Democrats varies by election year. Before 1994, Democrats had a more consistent majority in the House compared to recent years. 
+
+```{r}
+ushouse_v1 %>%
+  filter(stage == "GEN", 
+         outcome == "win",
+         party_dro %in% c("Democrat", "Republican")) %>% 
+  group_by(year, party_dro) %>%
+  summarise(totalwins = n()) %>%
+  group_by(year) %>%
+  mutate(percentage = totalwins / sum(totalwins) * 100) %>%
+  ggplot(aes(x = ifelse(party_dro == "Democrat", -percentage, percentage), y = factor(year, levels = rev(unique(year))), fill = party_dro)) +
+  geom_col(position = "stack") +
+  geom_text(aes(label = sprintf("%.1f%%", abs(percentage)), hjust = ifelse(party_dro == "Democrat", 3, -1.5)), 
+            position = position_stack(vjust = 0.5),
+            color = "white", size = 2.5) +
+  labs(
+    title = "Percentage of Wins per Party Across Election Years in House Races",
+    subtitle = "A 'win' is defined as receiving the most votes among other candidates in that general election",
+    x = "Percentage of Election Wins (%)",
+    y = "Year",
+    fill = "Party:",
+    caption = "Created with Tidy Tuesday Data"
+  ) +
+  scale_fill_manual(values = c("Democrat" = "blue", "Republican" = "red")) +
+  scale_x_continuous(limits = c(-70, 70), labels = function(x) abs(x)) +
+  theme(
+    legend.position = "top", 
+    legend.justification = "center"  
+  )
+```
+
+## Difference in Amount of Wins Between Democrats and Republicans
+
+The Democrats have more years when they have won more elections that Republicans. In more recent years, the difference in the amount of wins between the two parties has been narrower than in earlier years. 
+
+```{r}
+ushouse_v1 %>%
+  filter(stage == "GEN", 
+         outcome == "win", 
+         party %in% c("REPUBLICAN", "DEMOCRAT")) %>% 
+  group_by(year, party) %>%
+  summarise(totalwins = n()) %>%
+  spread(party, totalwins, fill = 0) %>%
+  mutate(difference = DEMOCRAT - REPUBLICAN) %>%
+  ggplot(aes(x = year, y = difference, group = 1)) +
+  geom_point(aes(color = ifelse(difference < 0, "Majority Republican", "Majority Democrat"))) +
+  geom_line(aes(color = ifelse(difference < 0, "Majority Republican", "Majority Democrat")), linewidth = 0.5) +
+  labs(
+    title = "Difference in Wins between Democrats and Republicans Across Election Years in House Races",
+    subtitle = "Values above 0 indicate more wins for Democrats than Republicans",
+    x = "Year",
+    y = "Difference in Election Wins",
+    color = "Party Majority in House",
+    caption = "Created with Tidy Tuesday Data"
+  ) +
+  scale_color_manual(values = c("Majority Republican" = "red", "Majority Democrat" = "blue")) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+### Functions Used
+
+`dplyr`: `group_by`, `mutate`, `case_when`, `summarise`, `filter`, `ungroup`, `across`
+
+`ggplot2`: `geom_point`, `geom_line`, `geom_errorbar`, `geom_col`, `geom_text`, `labs`, `scale_color_manual`, `theme`
+
+`tidyr` : `spread`, `unnest_wider`
