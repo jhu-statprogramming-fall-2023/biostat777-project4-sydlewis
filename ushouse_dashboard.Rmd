@@ -219,56 +219,81 @@ ushouse_v1 %>%
 ```
 
 # Interactive Content 2
-
 ```{r}
-ushouse_v1$state <- as.character(ushouse_v1$state)
+library(shiny)
+library(ggplot2)
+library(dplyr)
 
-# UI Element for State Selection
-selectInput("stateInput", "Select a State:", 
-            choices = c("All States", unique(ushouse_v1$state)), 
-            selected = "All States")
-
-# Server Logic for the Plot
-output$myInteractivePlot <- renderPlot({
-  # Filter data based on selected state
-  filtered_data <- ushouse_v1 %>%
-    filter(if(input$stateInput != "All States") state == input$stateInput else TRUE,
-           stage == "GEN", 
-           outcome == "win",
-           party_dro %in% c("Democrat", "Republican")) %>%
-    group_by(year, party_dro) %>%
-    summarise(totalwins = n(), .groups = 'drop') %>%
-    group_by(year) %>%
-    mutate(percentage = totalwins / sum(totalwins) * 100)
-
-  # Debug: print the first few lines of the filtered data to the console
-  print(head(filtered_data))
-
-  # Create the plot
-  ggplot(filtered_data, aes(x = ifelse(party_dro == "Democrat", -percentage, percentage), y = factor(year, levels = rev(unique(year))), fill = party_dro)) +
-    geom_col(position = "stack") +
-    labs(
-      title = "Percentage of Wins per Party Across Election Years in House Races",
-      subtitle = "A 'win' is defined as receiving the most votes among other candidates in that general election",
-      x = "Percentage of Election Wins (%)",
-      y = "Year",
-      fill = "Party:",
-      caption = "Created with Tidy Tuesday Data"
-    ) +
-    scale_fill_manual(values = c("Democrat" = "blue", "Republican" = "red")) +
-    scale_x_continuous(limits = c(-110, 100), labels = function(x) abs(x)) +
-    theme(
-      legend.position = "top", 
-      legend.justification = "center"  
+# UI Definition
+ui <- fluidPage(
+  titlePanel("House Election Wins by State"),
+  
+  fluidRow(
+    column(width = 12,
+      selectInput("stateInput", "Select a State:", 
+                  choices = c("All States", unique(ushouse_v1$state)), 
+                  selected = "All States")
     )
-})
+  ),
+  
+  # Row for the Interactive Plot
+  fluidRow(
+    column(width = 12,
+      plotOutput("myInteractivePlot", width = "100%", height = "575px")
+    )
+  )
+)
+
+# Server Logic
+server <- function(input, output) {
+  # Reactive expression for filtered data
+  filtered_data <- reactive({
+    if (input$stateInput != "All States") {
+      ushouse_v1 %>%
+        filter(state == input$stateInput,
+               stage == "GEN", 
+               outcome == "win",
+               party_dro %in% c("Democrat", "Republican"))
+    } else {
+      ushouse_v1 %>%
+        filter(stage == "GEN", 
+               outcome == "win",
+               party_dro %in% c("Democrat", "Republican"))
+    }
+  })
+
+  # Plot output based on reactive data
+  output$myInteractivePlot <- renderPlot({
+    data_to_plot <- filtered_data() %>%
+      group_by(year, party_dro) %>%
+      summarise(totalwins = n(), .groups = 'drop') %>%
+      group_by(year) %>%
+      mutate(percentage = totalwins / sum(totalwins) * 100)
+
+    ggplot(data_to_plot, aes(x = ifelse(party_dro == "Democrat", -percentage, percentage), y = factor(year, levels = rev(unique(year))), fill = party_dro)) +
+      geom_col(position = "stack", width = 0.8) +
+      labs(
+        title = "Percentage of Wins per Party Across Election Years in House Races",
+        subtitle = "A 'win' is defined as receiving the most votes among other candidates in that general election",
+        x = "Percentage of Election Wins (%)",
+        y = "Year",
+        fill = "Party:",
+        caption = "Created with Tidy Tuesday Data"
+      ) +
+      scale_fill_manual(values = c("Democrat" = "blue", "Republican" = "red")) +
+      scale_x_continuous(limits = c(-90, 90), labels = function(x) abs(x)) +
+      theme(
+        legend.position = "top", 
+        legend.justification = "center",
+        text = element_text(size = 18)
+      )
+  })
+}
+
+shinyApp(ui = ui, server = server)
 
 ```
 
-```{r}
-# Plot Output Element
-plotOutput("myInteractivePlot")
-```
 
 # Analysis
 
