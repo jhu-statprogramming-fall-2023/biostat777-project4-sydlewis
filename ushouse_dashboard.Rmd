@@ -1,10 +1,12 @@
 ---
 title: "U.S. House Elections"
-output: 
+output:
   flexdashboard::flex_dashboard:
     orientation: columns
     vertical_layout: fill
 runtime: shiny
+resource_files:
+- "biostat777-project4-sydlewis.Rproj"
 ---
 
 ```{r setup, include=FALSE}
@@ -18,17 +20,17 @@ library(DT)
 
 ## Column {data-width=400}
 
-### Research Question: **How has the volume and distribution of votes changed in U.S. House of Representative elections over time?**
+### **Research Question: How has the volume and distribution of votes changed in U.S. House of Representative elections over time?**
 
 I am interested in how the amount of votes have changed over time and how these numbers differ across midterm and presidential election years. I am also interested in how the proportion of elections won has changed over time across party. 
 
-### Data Source
+### **Data Source**
 
 In answering these questions I using data from the [MIT Election Data and Science Lab](https://electionlab.mit.edu). I downloaded the dataset via the Tidy Tuesday GitHub repo [here](https://github.com/rfordatascience/tidytuesday/blob/master/data/2023/2023-11-07/readme.md). The data dictionary can also be found [here](https://github.com/rfordatascience/tidytuesday/blob/master/data/2023/2023-11-07/readme.md). 
 
-### Video
+### **Video Tutorial**
 
-*This is where the video will go!*
+[![IMAGE_ALT](https://img.youtube.com/vi/2JHPX9x8IuE/mqdefault.jpg)](https://youtu.be/2JHPX9x8IuE)
 
 ## Column {data-width=600}
 
@@ -38,11 +40,11 @@ In answering these questions I using data from the [MIT Election Data and Scienc
 
 # The Data
 
-### Description {data-height=200}
+### **Description** {data-height=200}
 
 Each row of the data set represents a candidate in a United States House of Representatives Election. The row contains information about the election, including the year, state, and type (primary or general), about the candidate, including their name and party, and about the election results, including the number of votes cast for the candidate and the total number of votes in the election. 
 
-### Dataset {data-height=800}
+### **Dataset** {data-height=800}
 
 ```{r}
 # Function created to avoid unnecessarily saving the data when it is already saved locally
@@ -122,10 +124,9 @@ ushouse_v1 %>%
 ```{r}
 # UI
 ui <- fluidPage(
-    titlePanel("Interactive State-wise Vote Visualization"),
     selectInput("state", "Select a State:", 
                 choices = unique(ushouse_v1$state)),
-    plotOutput("votePlot")
+    plotOutput("votePlot", width = "75%")
 )
 
 # Server
@@ -140,8 +141,8 @@ server <- function(input, output) {
         ggplot(filtered_data, aes(x = year, y = total_votes, fill = year_type)) +
             geom_col() +
             labs(
-                title = paste("Total Votes per Party Across Election Years in House Races in", input$state),
-                subtitle = "In general, the volume of votes has increased over time",
+                title = paste("Total Votes by Party Across Election Years in House Races \nin", input$state),
+                subtitle = "In general, the volume of votes has increased over time.",
                 x = "Year",
                 y = "Number of Votes",
                 fill = "Election Type",
@@ -209,8 +210,8 @@ ushouse_v1 %>%
             position = position_stack(vjust = 0.5),
             color = "white", size = 2.5) +
   labs(
-    title = "Percentage of Wins per Party Across Election Years in House Races",
-    subtitle = "A 'win' is defined as receiving the most votes among other candidates in that general election",
+    title = "Percentage of Wins per Party Across Election Years in \nHouse Races",
+    subtitle = "A 'win' is defined as receiving the most votes among other candidates in \nthat general election",
     x = "Percentage of Election Wins (%)",
     y = "Year",
     fill = "Party:",
@@ -286,11 +287,12 @@ server <- function(input, output) {
         scale_fill_gradient2(low = "red", high = "blue", mid = "purple", 
                              midpoint = 50, 
                              limit = c(0, 100),
-                             labels = c("All Republican", "50/50", "All Democrat"),
+                             labels = c("All Republican", "Mixed Affiliations", "All Democrat"),
                              breaks = c(0, 50, 100)) +
-        labs(title = "Election Wins Across State by Year",
-             subtitle = "Use the drop down menu to select a year",
-             fill = "Party Affiliation") +
+        labs(title = paste("Proportion of Election Wins by Party Across The US in", input$yearInput),
+             subtitle = "Please use the drop down menu to select a year.",
+             fill = "Party Affiliation",
+             caption = "Created with Tidy Tuesday data") +
     theme(
       axis.text.x = element_text(angle = 45, hjust = 1), 
       text = element_text(size = 18)
@@ -352,8 +354,8 @@ server <- function(input, output) {
   ggplot(data_to_plot, aes(x = year, y = percentage, fill = party_dro)) +
     geom_col(position = "stack", width = 0.8) +
     labs(
-      title = "Percentage of Wins per Party Across \nElection Years in House Races",
-      subtitle = "A 'win' is defined as receiving the most votes among other candidates in that general election",
+      title = paste("Percentage of House Election Wins by Party Across Time in", input$stateInput),
+      subtitle = "Please use the drop down menu to select a state. \nA 'win' is defined as receiving the most votes among other candidates in that general election",
       x = "Year",
       y = "Percentage of Election Wins (%)",
       fill = "Party:",
