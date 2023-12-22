@@ -26,7 +26,7 @@ I am interested in how the amount of votes have changed over time and how these 
 
 ### **Data Source**
 
-In answering these questions I using data from the [MIT Election Data and Science Lab](https://electionlab.mit.edu). I downloaded the dataset via the Tidy Tuesday GitHub repo [here](https://github.com/rfordatascience/tidytuesday/blob/master/data/2023/2023-11-07/readme.md). The data dictionary can also be found [here](https://github.com/rfordatascience/tidytuesday/blob/master/data/2023/2023-11-07/readme.md). 
+In answering these questions I used data from the [MIT Election Data and Science Lab](https://electionlab.mit.edu). I downloaded the dataset via the Tidy Tuesday GitHub repo [here](https://github.com/rfordatascience/tidytuesday/blob/master/data/2023/2023-11-07/readme.md). The data dictionary can also be found [here](https://github.com/rfordatascience/tidytuesday/blob/master/data/2023/2023-11-07/readme.md). 
 
 ### **Video Tutorial**
 
