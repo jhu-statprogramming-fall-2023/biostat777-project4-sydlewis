@@ -120,45 +120,42 @@ ushouse_v1 %>%
 # Vote Volume by State
 
 ```{r}
-# Assuming 'ushouse_v1' is your dataset
-ushouse_v1$state <- as.character(ushouse_v1$state)
+# UI
+ui <- fluidPage(
+    titlePanel("Interactive State-wise Vote Visualization"),
+    selectInput("state", "Select a State:", 
+                choices = unique(ushouse_v1$state)),
+    plotOutput("votePlot")
+)
 
-# UI Element for State Selection
-selectInput("stateInput", "Select a State:", 
-            choices = c("All States", unique(ushouse_v1$state)), 
-            selected = "All States")
+# Server
+server <- function(input, output) {
+    output$votePlot <- renderPlot({
+        filtered_data <- ushouse_v1 %>%
+            filter(state == input$state, stage == "GEN") %>%
+            group_by(year, year_type) %>%
+            summarise(total_votes = sum(candidatevotes), .groups = 'drop') %>%
+            ungroup()
 
-# Server Logic
-output$myPlot <- renderPlot({
-  # Filter data based on selected state
-  filtered_data <- ushouse_v1 %>%
-    filter(if(input$stateInput != "All States") state == input$stateInput else TRUE,
-           stage == "GEN") %>%
-    mutate(year = as.numeric(year)) %>%
-    group_by(year, year_type) %>%
-    summarise(total_votes = sum(candidatevotes), .groups = 'drop') %>%
-    ungroup()
+        ggplot(filtered_data, aes(x = year, y = total_votes, fill = year_type)) +
+            geom_col() +
+            labs(
+                title = paste("Total Votes per Party Across Election Years in House Races in", input$state),
+                subtitle = "In general, the volume of votes has increased over time",
+                x = "Year",
+                y = "Number of Votes",
+                fill = "Election Type",
+                caption = "Created with Tidy Tuesday Data"
+            ) +
+          theme_minimal() +
+            theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 10), 
+      text = element_text(size = 18)) +
+            scale_fill_manual(values = c("Presidential Year" = "darkblue", "Midterm Year" = "lightblue"))
+    })
+}
 
-  # Create the plot
-  ggplot(filtered_data, aes(x = year, y = total_votes, fill = year_type)) +
-    geom_col() +
-    labs(
-      title = "Total Votes per Party Across Election Years in House Races",
-      subtitle = "Visualization only includes votes for Republicans or Democrats",
-      x = "Year",
-      y = "Number of Votes",
-      fill = "Election Type",
-      caption = "Created with Tidy Tuesday Data"
-    ) +
-    theme_minimal() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-    scale_fill_manual(values = c("Presidential Year" = "darkblue", "Midterm Year" = "lightblue"))
-}) 
-```
-
-```{r}
-# Plot Output Element
-plotOutput("myPlot")
+# Run the application 
+shinyApp(ui = ui, server = server)
 ```
 
 # Vote Distribution Across Party
@@ -180,7 +177,7 @@ ushouse_v1 %>%
   geom_point(aes(color = ifelse(difference < 0, "Majority Republican", "Majority Democrat"))) +
   geom_line(aes(color = ifelse(difference < 0, "Majority Republican", "Majority Democrat")), linewidth = 0.5) +
   labs(
-    title = "Difference in Wins between Democrats and Republicans Across Election Years in House Races",
+    title = "Difference in Wins between Democrats and Republicans Across \nElection Years in House Races",
     subtitle = "Values above 0 indicate more wins for Democrats than Republicans",
     x = "Year",
     y = "Difference in Election Wins",
@@ -189,7 +186,11 @@ ushouse_v1 %>%
   ) +
   theme_minimal() +
   scale_color_manual(values = c("Majority Republican" = "red", "Majority Democrat" = "blue")) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  theme(
+    legend.position = "top", 
+    legend.justification = "center"  
+  )
 ```
 
 ### Percentage of Election Wins Across Party and Year
@@ -288,42 +289,21 @@ server <- function(input, output) {
                              labels = c("All Republican", "50/50", "All Democrat"),
                              breaks = c(0, 50, 100)) +
         labs(title = "Election Wins Across State by Year",
-             fill = "Party Affiliation")
+             subtitle = "Use the drop down menu to select a year",
+             fill = "Party Affiliation") +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1), 
+      text = element_text(size = 18)
+    )
     })
 }
 
 shinyApp(ui, server)
 ```
 
-```{r, include = FALSE}
-filtered_data1 <- ushouse_v1 %>%
-            filter(outcome == "win",
-                   year == 2022) %>%
-            count(state_po, year, party_dro) %>%
-            group_by(state_po, year) %>%
-            mutate(total_wins = sum(n)) %>%
-            ungroup() %>%
-            mutate(percentage = (n / total_wins) * 100) %>%
-            pivot_wider(
-                names_from = party_dro,
-                values_from = percentage,
-                values_fill = list(percentage = 0)  # Fill missing values with 0
-            ) %>%
-            group_by(state_po, year) %>%
-            summarise(across(starts_with('Democrat'), sum),
-                      across(starts_with('Republican'), sum),
-                      across(starts_with('Other'), sum),
-                      .groups = 'drop') 
-#            mutate(party_lean = 1 * Democrat + 0 * Republican + 0.5 * Other)
-```
-
-
-
 ### Party Election Wins Across Years by State
 ```{r}
-library(shiny)
-library(ggplot2)
-library(dplyr)
+ushouse_v1$state <- as.factor(ushouse_v1$state)
 
 # UI Definition
 ui <- fluidPage(
@@ -332,7 +312,7 @@ ui <- fluidPage(
   fluidRow(
     column(width = 12,
       selectInput("stateInput", "Select a State:", 
-                  choices = c("All States", unique(ushouse_v1$state)), 
+                  choices = c("All States", as.character(unique(ushouse_v1$state))), 
                   selected = "All States")
     )
   ),
