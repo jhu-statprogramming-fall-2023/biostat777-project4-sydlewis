@@ -103,26 +103,24 @@ ushouse_v1 <- ushouse_raw %>%
   ungroup()
 
 ushouse_v1 %>%
-  filter(party_dro %in% c("Democrat", "Republican"),
-         stage == "GEN") %>%
-  group_by(party_dro, year, year_type) %>%
-  summarise(mean_votes = mean(candidatevotes)) %>%
+         filter(stage == "GEN") %>%
+  group_by(year, year_type) %>%
+  summarise(total_votes = sum(candidatevotes), .groups = 'drop') %>%
   ungroup() %>%
-  ggplot(aes(x = year, y = mean_votes, color = party_dro, group = interaction(party_dro, year_type), shape = year_type)) +
-  geom_point(size = 2.5) +
-  geom_line() +
-  scale_color_manual(values = c("Republican" = "red", "Democrat" = "blue", "Other" = "gray")) +
-  labs(
-    title = "Total Votes per Party Across Election Years in House Races",
-    subtitle = "Visualization only includes votes for Republicans or Democrats",
-    x = "Year",
-    y = "Number of Votes",
-    color = "Party",
-    shape = "Election Type",
-    caption = "Created with Tidy Tuesday Data"
-  ) +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+  ggplot(aes(x = year, y = total_votes, fill = year_type)) +
+            geom_col() +
+            labs(
+                title = "Total Votes by Party Across Election Years in House Races",
+                subtitle = "In general, the volume of votes has increased over time.",
+                x = "Year",
+                y = "Number of Votes",
+                fill = "Election Type",
+                caption = "Created with Tidy Tuesday Data"
+            ) +
+          theme_minimal() +
+            theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8), 
+      text = element_text(size = 10)) +
+            scale_fill_manual(values = c("Presidential Year" = "darkblue", "Midterm Year" = "lightblue"))
 ```
 
 # Vote Volume by State
