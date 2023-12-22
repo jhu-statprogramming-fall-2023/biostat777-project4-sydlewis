@@ -5,6 +5,6 @@ account: sydlewis
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 10840852
-bundleId: 8077521
+bundleId: 8077662
 url: https://sydlewis.shinyapps.io/biostat777-project4-sydlewis/
 version: 1

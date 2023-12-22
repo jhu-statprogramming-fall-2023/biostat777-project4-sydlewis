@@ -210,7 +210,7 @@ ushouse_v1 %>%
   mutate(percentage = totalwins / sum(totalwins) * 100) %>%
   ggplot(aes(x = ifelse(party_dro == "Democrat", -percentage, percentage), y = factor(year, levels = rev(unique(year))), fill = party_dro)) +
   geom_col(position = "stack") +
-  geom_text(aes(label = sprintf("%.1f%%", abs(percentage)), hjust = ifelse(party_dro == "Democrat", 3, -1.5)), 
+  geom_text(aes(label = sprintf("%.1f%%", abs(percentage)), hjust = ifelse(party_dro == "Democrat", 2, -1)), 
             position = position_stack(vjust = 0.5),
             color = "white", size = 2.5) +
   labs(
