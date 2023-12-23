@@ -30,7 +30,7 @@ In answering these questions I used data from the [MIT Election Data and Science
 
 ### **Video Tutorial**
 
-<iframe width="350" height="220" src="https://www.youtube.com/embed/2JHPX9x8IuE" title="US House Elections Dashboard" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+<iframe width="350" height="220" src="https://www.youtube.com/embed/CFPqrVrJ-tU" title="US House Elections Dashboard" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
 ## Column {data-width=600}
 
@@ -380,7 +380,7 @@ server <- function(input, output) {
 shinyApp(ui = ui, server = server)
 ```
 
-# Analysis
+# Analysis 
 
 ## Column {data-width=350}
 
@@ -483,5 +483,4 @@ ushouse_v1 %>%
   ) +
   scale_color_manual(values = c("Majority Republican" = "red", "Majority Democrat" = "blue")) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
 ```
